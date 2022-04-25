@@ -26,6 +26,10 @@ from sporco import metric
 from sporco import util
 from sporco import plot
 plot.config_notebook_plotting()
+
+import imageio
+import time
+import scipy
 # Define demosaicing forward operator and its transpose.
 
 def A(x):
@@ -70,9 +74,10 @@ np.random.seed(12345)
 s = A(img)
 rgbshp = s.shape + (3,)  # Shape of reconstructed RGB image
 rgbsz = s.size * 3       # Size of reconstructed RGB image
-nsigma = 2e-2            # Noise standard deviation
+nsigma = 0            # Noise standard deviation
 sn = s + nsigma * np.random.randn(*s.shape)
 
+k = (1/25)*np.ones((5,5))
 # Define data fidelity term for PPP problem.
 
 def f(x):
@@ -91,14 +96,21 @@ def proxf(x, rho, tol=1e-3, maxit=100):
 bsigma = 6.1e-2  # Denoiser parameter
 
 def proxg(x, rho):
-    return bm3d_rgb(x, bsigma)
+    #return bm3d_rgb(x, bsigma)
+    out = np.zeros(x.shape)
+    out[:,:,0] = scipy.signal.convolve2d(x[:,:,0], k, mode='same')
+    out[:,:,1] = scipy.signal.convolve2d(x[:,:,1], k, mode='same')
+    out[:,:,2] = scipy.signal.convolve2d(x[:,:,2], k, mode='same')
+    return out
+    
 # Construct a baseline solution and initaliser for the PPP solution by BM3D denoising of a simple bilinear demosaicing solution. The 3 * nsigma denoising parameter for BM3D is chosen empirically for best performance.
 
-imgb = bm3d_rgb(demosaic(sn), 3 * nsigma)
+imgb = AT(sn)
+#imgb = proxf(img, rho=0)
 # Set algorithm options for PPP solver, including use of bilinear demosaiced solution as an initial solution.
 
 opt = PPP.Options({'Verbose': True, 'RelStopTol': 1e-3,
-                   'MaxMainIter': 12, 'rho': 1.8e-1, 'Y0': imgb})
+                   'MaxMainIter': 20, 'rho': 1.8, 'Y0': imgb})
 #Create solver object and solve, returning the the demosaiced image imgp.
 
 b = PPP(img.shape, f, proxf, proxg, opt=opt)
@@ -136,3 +148,8 @@ plot.imview(imgb, title='Baseline demoisac: %.2f (dB)' %
 plot.imview(imgp, title='PPP demoisac: %.2f (dB)' %
             metric.psnr(img, imgp), fig=fig, ax=ax[2])
 fig.show()
+
+imageio.imwrite(f'img_{time.time()}.png', img)
+imageio.imwrite(f'sn_{time.time()}.png', sn)
+imageio.imwrite(f'imgb_{time.time()}.png', imgb)
+imageio.imwrite(f'imgp_{time.time()}.png', imgp)
