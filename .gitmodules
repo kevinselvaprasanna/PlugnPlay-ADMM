@@ -1,0 +1,6 @@
+[submodule "KAIR"]
+	path = KAIR
+	url = git@github.com:kevinselvaprasanna/KAIR.git
+[submodule "MPRNet"]
+	path = MPRNet
+	url = git@github.com:kevinselvaprasanna/MPRNet.git
