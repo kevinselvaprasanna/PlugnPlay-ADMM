@@ -6,7 +6,6 @@ This is a temporary script file.
 """
 
 from __future__ import print_function
-from builtins import input, range
 
 import numpy as np
 from scipy.sparse.linalg import LinearOperator
@@ -29,7 +28,8 @@ plot.config_notebook_plotting()
 
 import imageio
 import time
-import scipy
+import cv2
+from KAIR.denoise_dncnn import denoise_dncnn
 # Define demosaicing forward operator and its transpose.
 
 def A(x):
@@ -93,24 +93,31 @@ def proxf(x, rho, tol=1e-3, maxit=100):
     return vx.reshape(rgbshp)
 # Define proximal operator of (implicit, unknown) regularisation term for PPP problem. In this case we use BM3D [18] as the denoiser, using the code released with [35].
 
-bsigma = 6.1e-2  # Denoiser parameter
+bsigma = 0.6  # Denoiser parameter
+
+def gaussian_filter(x, rho=1):
+    out = np.zeros(x.shape)
+    out[:,:,0] = cv2.GaussianBlur(src=x[:,:,0],ksize=(5,5),sigmaX=rho,sigmaY=rho,borderType=cv2.BORDER_REPLICATE)
+    out[:,:,1] = cv2.GaussianBlur(src=x[:,:,1],ksize=(5,5),sigmaX=rho,sigmaY=rho,borderType=cv2.BORDER_REPLICATE)
+    out[:,:,2] = cv2.GaussianBlur(src=x[:,:,2],ksize=(5,5),sigmaX=rho,sigmaY=rho,borderType=cv2.BORDER_REPLICATE)
+    return out
+
+def bilateral_filter(x, rho=0.4):
+    return cv2.bilateralFilter(src=np.float32(x), d=5, sigmaColor=20, sigmaSpace=rho)
 
 def proxg(x, rho):
-    #return bm3d_rgb(x, bsigma)
-    out = np.zeros(x.shape)
-    out[:,:,0] = scipy.signal.convolve2d(x[:,:,0], k, mode='same')
-    out[:,:,1] = scipy.signal.convolve2d(x[:,:,1], k, mode='same')
-    out[:,:,2] = scipy.signal.convolve2d(x[:,:,2], k, mode='same')
-    return out
+    #return bilateral_filter(x, bsigma)
+    #return bilateral_filter(x, 0.4)
+    return denoise_dncnn(np.float32(x))
     
 # Construct a baseline solution and initaliser for the PPP solution by BM3D denoising of a simple bilinear demosaicing solution. The 3 * nsigma denoising parameter for BM3D is chosen empirically for best performance.
 
-imgb = AT(sn)
-#imgb = proxf(img, rho=0)
+#imgb = demosaic(sn)
+imgb = proxf(img, rho=0)
 # Set algorithm options for PPP solver, including use of bilinear demosaiced solution as an initial solution.
 
 opt = PPP.Options({'Verbose': True, 'RelStopTol': 1e-3,
-                   'MaxMainIter': 20, 'rho': 1.8, 'Y0': imgb})
+                   'MaxMainIter': 20, 'rho': 0.01, 'Y0': imgb})
 #Create solver object and solve, returning the the demosaiced image imgp.
 
 b = PPP(img.shape, f, proxf, proxg, opt=opt)
@@ -150,6 +157,6 @@ plot.imview(imgp, title='PPP demoisac: %.2f (dB)' %
 fig.show()
 
 imageio.imwrite(f'img_{time.time()}.png', img)
-imageio.imwrite(f'sn_{time.time()}.png', sn)
-imageio.imwrite(f'imgb_{time.time()}.png', imgb)
+#imageio.imwrite(f'sn_{time.time()}.png', sn)
+#imageio.imwrite(f'imgb_{time.time()}.png', imgb)
 imageio.imwrite(f'imgp_{time.time()}.png', imgp)
