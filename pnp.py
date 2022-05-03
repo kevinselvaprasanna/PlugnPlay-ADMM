@@ -28,33 +28,85 @@ plot.config_notebook_plotting()
 import imageio
 import time
 import cv2
-#from KAIR.denoise_dncnn import denoise_dncnn
+from KAIR.denoise_dncnn import denoise_dncnn
 # Define demosaicing forward operator and its transpose.
 
-def A(x):
-    """Map an RGB image to a single channel image with each pixel
-    representing a single colour according to the colour filter array.
-    """
-
-    y = np.zeros(x.shape[0:2])
-    y[1::2, 1::2] = x[1::2, 1::2, 0]
-    y[0::2, 1::2] = x[0::2, 1::2, 1]
-    y[1::2, 0::2] = x[1::2, 0::2, 1]
-    y[0::2, 0::2] = x[0::2, 0::2, 2]
-    return y
-
-
-def AT(x):
-    """Back project a single channel raw image to an RGB image with zeros
-    at the locations of undefined samples.
-    """
-
-    y = np.zeros(x.shape + (3,))
-    y[1::2, 1::2, 0] = x[1::2, 1::2]
-    y[0::2, 1::2, 1] = x[0::2, 1::2]
-    y[1::2, 0::2, 1] = x[1::2, 0::2]
-    y[0::2, 0::2, 2] = x[0::2, 0::2]
-    return y
+b = False
+if b:
+    
+    def A(x):
+        """Map an RGB image to a single channel image with each pixel
+        representing a single colour according to the colour filter array.
+        """
+    
+        y = np.zeros(x.shape[0:2])
+        y[1::2, 1::2] = x[1::2, 1::2, 0]
+        y[0::2, 1::2] = x[0::2, 1::2, 1]
+        y[1::2, 0::2] = x[1::2, 0::2, 1]
+        y[0::2, 0::2] = x[0::2, 0::2, 2]
+        return y
+    
+    
+    def AT(x):
+        """Back project a single channel raw image to an RGB image with zeros
+        at the locations of undefined samples.
+        """
+    
+        y = np.zeros(x.shape + (3,))
+        y[1::2, 1::2, 0] = x[1::2, 1::2]
+        y[0::2, 1::2, 1] = x[0::2, 1::2]
+        y[1::2, 0::2, 1] = x[1::2, 0::2]
+        y[0::2, 0::2, 2] = x[0::2, 0::2]
+        return y
+else:
+    def A(x):
+        """Map an RGB image to a single channel image with each pixel
+        representing a single colour according to the colour filter array.
+        """
+    
+        y = np.zeros(x.shape[0:2])
+        y[2::4, 2::4] = x[2::4, 2::4, 0]
+        y[2::4, 3::4] = x[2::4, 3::4, 0]
+        y[3::4, 2::4] = x[3::4, 2::4, 0]
+        y[3::4, 3::4] = x[3::4, 3::4, 0]
+        y[0::4, 2::4] = x[0::4, 2::4, 1]
+        y[0::4, 3::4] = x[0::4, 3::4, 1]
+        y[1::4, 2::4] = x[1::4, 2::4, 1]
+        y[1::4, 3::4] = x[1::4, 3::4, 1]
+        y[2::4, 0::4] = x[2::4, 0::4, 1]
+        y[2::4, 1::4] = x[2::4, 1::4, 1]
+        y[3::4, 0::4] = x[3::4, 0::4, 1]
+        y[3::4, 1::4] = x[3::4, 1::4, 1]
+        y[0::4, 0::4] = x[0::4, 0::4, 2]
+        y[0::4, 1::4] = x[0::4, 1::4, 2]
+        y[1::4, 0::4] = x[1::4, 0::4, 2]
+        y[1::4, 1::4] = x[1::4, 1::4, 2]
+        return y
+    
+    
+    def AT(x):
+        """Back project a single channel raw image to an RGB image with zeros
+        at the locations of undefined samples.
+        """
+    
+        y = np.zeros(x.shape + (3,))
+        y[2::4, 2::4, 0] = x[2::4, 2::4]
+        y[2::4, 3::4, 0] = x[2::4, 3::4]
+        y[3::4, 2::4, 0] = x[3::4, 2::4]
+        y[3::4, 3::4, 0] = x[3::4, 3::4]
+        y[0::4, 2::4, 1] = x[0::4, 2::4]
+        y[0::4, 3::4, 1] = x[0::4, 3::4]
+        y[1::4, 2::4, 1] = x[1::4, 2::4]
+        y[1::4, 3::4, 1] = x[1::4, 3::4]
+        y[2::4, 0::4, 1] = x[2::4, 0::4]
+        y[2::4, 1::4, 1] = x[2::4, 1::4]
+        y[3::4, 0::4, 1] = x[3::4, 0::4]
+        y[3::4, 1::4, 1] = x[3::4, 1::4]
+        y[0::4, 0::4, 2] = x[0::4, 0::4]
+        y[0::4, 1::4, 2] = x[0::4, 1::4]
+        y[1::4, 0::4, 2] = x[1::4, 0::4]
+        y[1::4, 1::4, 2] = x[1::4, 1::4]
+        return y
 
 def fspecial_gauss(size, sigma):
 
@@ -118,90 +170,74 @@ def bilateral_filter(x, rho=0.4):
 def proxg(x, rho):
     #return bilateral_filter(x, bsigma)
     return bilateral_filter(x, 3)
+    #return gaussian_filter(x, 1)
     #return np.float32(denoise_dncnn(np.float32(x)))/255.
     #return bm3d_rgb(x, 0.3)
     
 if __name__ == "__main__" :
     # Load reference image.
+    
+    psnr = []
 
-    # img = util.ExampleImages().image('kodim23.png', scaled=True,
-    #                                  idxexp=np.s_[160:416,60:316])
-    i = 15
-    img_name = f'dataset/kodim_dataset/kodim{i:02}.png'
+    for i in range(1,25):
+        # img = util.ExampleImages().image('kodim23.png', scaled=True,
+        #                                  idxexp=np.s_[160:416,60:316])
+        img_name = f'dataset/kodim_dataset/kodim{i:02}.png'
+    
+        
+        # forward = blur
+        # myf = blur_f
+        # myprof = prox_deblur
+        
+        forward = A
+        myf = f
+        myprof = proxf
+        
+        img = cv2.imread(img_name)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        #img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img = np.float32(img/255.)
+        # Construct test image constructed by colour filter array sampling and adding Gaussian white noise.
+    
+        np.random.seed(12345)
+        s = forward(img)
+        rgbshp = s.shape + (3,)  # Shape of reconstructed RGB image
+        rgbsz = s.size * 3       # Size of reconstructed RGB image
+        nsigma = 0            # Noise standard deviation
+        sn = s + nsigma * np.random.randn(*s.shape)
+        
+       
+        #imgb = demosaic(sn)
+        imgb = myprof(img, rho=0)
+        # Set algorithm options for PPP solver, including use of bilinear demosaiced solution as an initial solution.
+        
+        opt = PPP.Options({'Verbose': True, 'RelStopTol': 1e-3,
+                           'MaxMainIter': 50, 'rho': 1, 'Y0': imgb})
+        #Create solver object and solve, returning the the demosaiced image imgp.
+        
+        b = PPP(img.shape, myf, myprof, proxg, opt=opt)
+        imgp = b.solve()
+        
+        print("PPP ADMM solve time:        %5.2f s" % b.timer.elapsed('solve'))
+        print("Baseline demosaicing PSNR:  %5.2f dB" % metric.psnr(img, imgb))
+        print("PPP demosaicing PSNR:       %5.2f dB" % metric.psnr(img, imgp))
+        # Display reference and demosaiced images.
+        
+        # fig, ax = plot.subplots(nrows=1, ncols=3, sharex=True, sharey=True,
+        #                         figsize=(21, 7))
+        # plot.imview(img, title='Reference', fig=fig, ax=ax[0])
+        # plot.imview(imgb, title='Baseline demoisac: %.2f (dB)' %
+        #             metric.psnr(img, imgb), fig=fig, ax=ax[1])
+        # plot.imview(imgp, title='PPP demoisac: %.2f (dB)' %
+        #             metric.psnr(img, imgp), fig=fig, ax=ax[2])
+        # fig.show()
+        
+        #imageio.imwrite(f'img_{time.time()}.png', img)
+        #imageio.imwrite(f'sn_{time.time()}.png', sn)
+        #imageio.imwrite(f'imgb_{time.time()}.png', imgb)
+        imageio.imwrite(f'imgp_{time.time()}.png', imgp)
+        
 
-    
-    # forward = blur
-    # myf = blur_f
-    # myprof = prox_deblur
-    
-    forward = A
-    myf = f
-    myprof = proxf
-    
-    img = cv2.imread(img_name)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    #img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    img = np.float32(img/255.)
-    # Construct test image constructed by colour filter array sampling and adding Gaussian white noise.
-
-    np.random.seed(12345)
-    s = forward(img)
-    rgbshp = s.shape + (3,)  # Shape of reconstructed RGB image
-    rgbsz = s.size * 3       # Size of reconstructed RGB image
-    nsigma = 0            # Noise standard deviation
-    sn = s + nsigma * np.random.randn(*s.shape)
-    
-    bsigma = 0.6  # Denoiser parameter
-
-    # Define data fidelity term for PPP problem.
-
-    # Construct a baseline solution and initaliser for the PPP solution by BM3D denoising of a simple bilinear demosaicing solution. The 3 * nsigma denoising parameter for BM3D is chosen empirically for best performance.
-    
-    #imgb = demosaic(sn)
-    imgb = myprof(img, rho=0)
-    # Set algorithm options for PPP solver, including use of bilinear demosaiced solution as an initial solution.
-    
-    opt = PPP.Options({'Verbose': True, 'RelStopTol': 1e-3,
-                       'MaxMainIter': 12, 'rho': 1, 'Y0': imgb})
-    #Create solver object and solve, returning the the demosaiced image imgp.
-    
-    b = PPP(img.shape, myf, myprof, proxg, opt=opt)
-    imgp = b.solve()
-    # Itn   FVal      r         s
-    # ----------------------------------
-    #    0  3.77e-01  2.39e-02  4.07e-01
-    #    1  1.62e+00  1.97e-02  8.63e-02
-    #    2  3.05e+00  1.48e-02  8.40e-02
-    #    3  4.34e+00  1.13e-02  9.56e-02
-    #    4  5.32e+00  9.15e-03  8.91e-02
-    #    5  6.01e+00  8.08e-03  6.88e-02
-    #    6  6.55e+00  7.23e-03  4.71e-02
-    #    7  6.99e+00  6.19e-03  3.12e-02
-    #    8  7.39e+00  5.03e-03  2.93e-02
-    #    9  7.77e+00  4.06e-03  3.33e-02
-    #   10  8.12e+00  3.62e-03  3.45e-02
-    #   11  8.46e+00  3.52e-03  2.94e-02
-    # ----------------------------------
-    # Display solve time and demosaicing performance.
-    
-    print("PPP ADMM solve time:        %5.2f s" % b.timer.elapsed('solve'))
-    print("Baseline demosaicing PSNR:  %5.2f dB" % metric.psnr(img, imgb))
-    print("PPP demosaicing PSNR:       %5.2f dB" % metric.psnr(img, imgp))
-    # PPP ADMM solve time:        42.84 s
-    # Baseline demosaicing PSNR:  35.98 dB
-    # PPP demosaicing PSNR:       37.10 dB
-    # Display reference and demosaiced images.
-    
-    fig, ax = plot.subplots(nrows=1, ncols=3, sharex=True, sharey=True,
-                            figsize=(21, 7))
-    plot.imview(img, title='Reference', fig=fig, ax=ax[0])
-    plot.imview(imgb, title='Baseline demoisac: %.2f (dB)' %
-                metric.psnr(img, imgb), fig=fig, ax=ax[1])
-    plot.imview(imgp, title='PPP demoisac: %.2f (dB)' %
-                metric.psnr(img, imgp), fig=fig, ax=ax[2])
-    fig.show()
-    
-    imageio.imwrite(f'img_{time.time()}.png', img)
-    #imageio.imwrite(f'sn_{time.time()}.png', sn)
-    #imageio.imwrite(f'imgb_{time.time()}.png', imgb)
-    imageio.imwrite(f'imgp_{time.time()}.png', imgp)
+        psnr.append(metric.psnr(img, imgp))
+        
+print(f'Mean_psnr, {np.mean(psnr)}')
