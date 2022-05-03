@@ -99,7 +99,7 @@ if __name__ == "__main__" :
 
     # img = util.ExampleImages().image('kodim23.png', scaled=True,
     #                                  idxexp=np.s_[160:416,60:316])
-    img_name = '/home/electron/sources/kodak_dataset/kodim15.png'
+    img_name = '/home/kvalanar/ece595-project/PlugnPlay-ADMM/kodim15.png'
     img = cv2.imread(img_name)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = np.float32(img/255.)
