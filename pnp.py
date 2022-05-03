@@ -10,7 +10,7 @@ from __future__ import print_function
 import numpy as np
 from scipy.sparse.linalg import LinearOperator
 
-from bm3d import bm3d_rgb
+from bm3d import bm3d_rgb, bm3d
 try:
     from colour_demosaicing import demosaicing_CFA_Bayer_Menon2007
 except ImportError:
@@ -22,14 +22,13 @@ from sporco.linalg import _cg_wrapper
 from sporco.admm.ppp import PPP
 from sporco.interp import bilinear_demosaic
 from sporco import metric
-from sporco import util
 from sporco import plot
 plot.config_notebook_plotting()
 
 import imageio
 import time
 import cv2
-from KAIR.denoise_dncnn import denoise_dncnn
+#from KAIR.denoise_dncnn import denoise_dncnn
 # Define demosaicing forward operator and its transpose.
 
 def A(x):
@@ -56,6 +55,20 @@ def AT(x):
     y[1::2, 0::2, 1] = x[1::2, 0::2]
     y[0::2, 0::2, 2] = x[0::2, 0::2]
     return y
+
+def fspecial_gauss(size, sigma):
+
+    """Function to mimic the 'fspecial' gaussian MATLAB function
+    """
+
+    x, y = np.mgrid[-size//2 + 1:size//2 + 1, -size//2 + 1:size//2 + 1]
+    g = np.exp(-((x**2 + y**2)/(2.0*sigma**2)))
+    return g/g.sum()
+
+h = fspecial_gauss(9, 1)
+dim = (512, 768)
+eigHtH = np.abs(np.fft.fftn(h, s=dim))**2
+
 # Define baseline demosaicing function. If package colour_demosaicing is installed, use the demosaicing algorithm of [37], othewise use simple bilinear demosaicing.
 
 if have_demosaic:
@@ -67,6 +80,15 @@ else:
 
 def f(x):
     return 0.5 * np.linalg.norm((A(x) - sn).ravel())**2
+
+def blur(x):
+    x_padded = cv2.copyMakeBorder(x, top=len(h)//2, bottom=len(h)//2, left=len(h)//2, right=len(h)//2, borderType=cv2.BORDER_WRAP)
+    xf = cv2.filter2D(src=x_padded, ddepth=-1, kernel=h)
+    return xf[len(h)//2:-(len(h)//2), len(h)//2:-(len(h)//2)]
+
+def blur_f(x):
+    blur_x = blur(x)
+    return 0.5 * np.linalg.norm((blur_x - sn).ravel())**2
 # Define proximal operator of data fidelity term for PPP problem.
 
 def proxf(x, rho, tol=1e-3, maxit=100):
@@ -78,6 +100,10 @@ def proxf(x, rho, tol=1e-3, maxit=100):
     return vx.reshape(rgbshp)
 # Define proximal operator of (implicit, unknown) regularisation term for PPP problem. In this case we use BM3D [18] as the denoiser, using the code released with [35].
 
+def prox_deblur(x, rho):
+    Hty = blur(x)
+    rhs = np.fft.fftn(Hty + rho*x, s=dim)
+    return np.real(np.fft.ifftn(rhs/(eigHtH+rho),dim))
 
 def gaussian_filter(x, rho=1):
     out = np.zeros(x.shape)
@@ -87,29 +113,36 @@ def gaussian_filter(x, rho=1):
     return out
 
 def bilateral_filter(x, rho=0.4):
-    return cv2.bilateralFilter(src=np.float32(x), d=5, sigmaColor=20, sigmaSpace=rho)
+    return cv2.bilateralFilter(src=np.float32(x), d=5, sigmaColor=10, sigmaSpace=rho)
 
 def proxg(x, rho):
     #return bilateral_filter(x, bsigma)
     #return bilateral_filter(x, 0.4)
-    return np.float32(denoise_dncnn(np.float32(x)))/255.
+    #return np.float32(denoise_dncnn(np.float32(x)))/255.
+    return bm3d(x, bsigma)
     
 if __name__ == "__main__" :
     # Load reference image.
 
     # img = util.ExampleImages().image('kodim23.png', scaled=True,
     #                                  idxexp=np.s_[160:416,60:316])
+    
+    forward = blur
+    myf = blur_f
+    myprof = prox_deblur
+    
     img_name = '/home/electron/sources/kodak_dataset/kodim15.png'
     img = cv2.imread(img_name)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     img = np.float32(img/255.)
     # Construct test image constructed by colour filter array sampling and adding Gaussian white noise.
 
     np.random.seed(12345)
-    s = A(img)
+    s = forward(img)
     rgbshp = s.shape + (3,)  # Shape of reconstructed RGB image
     rgbsz = s.size * 3       # Size of reconstructed RGB image
-    nsigma = 0            # Noise standard deviation
+    nsigma = 0.1            # Noise standard deviation
     sn = s + nsigma * np.random.randn(*s.shape)
     
     bsigma = 0.6  # Denoiser parameter
@@ -119,14 +152,14 @@ if __name__ == "__main__" :
     # Construct a baseline solution and initaliser for the PPP solution by BM3D denoising of a simple bilinear demosaicing solution. The 3 * nsigma denoising parameter for BM3D is chosen empirically for best performance.
     
     #imgb = demosaic(sn)
-    imgb = proxf(img, rho=0)
+    imgb = sn#myprof(sn, rho=0)
     # Set algorithm options for PPP solver, including use of bilinear demosaiced solution as an initial solution.
     
     opt = PPP.Options({'Verbose': True, 'RelStopTol': 1e-3,
-                       'MaxMainIter': 12, 'rho': 0.007, 'Y0': imgb})
+                       'MaxMainIter': 12, 'rho': 1, 'Y0': imgb})
     #Create solver object and solve, returning the the demosaiced image imgp.
     
-    b = PPP(img.shape, f, proxf, proxg, opt=opt)
+    b = PPP(img.shape, myf, myprof, proxg, opt=opt)
     imgp = b.solve()
     # Itn   FVal      r         s
     # ----------------------------------
