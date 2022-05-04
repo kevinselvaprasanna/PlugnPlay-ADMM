@@ -31,82 +31,83 @@ import cv2
 from KAIR.denoise_dncnn import denoise_dncnn
 # Define demosaicing forward operator and its transpose.
 
-b = False
-if b:
+# b = False
+# if b:
     
-    def A(x):
-        """Map an RGB image to a single channel image with each pixel
-        representing a single colour according to the colour filter array.
-        """
+#     def A(x):
+#         """Map an RGB image to a single channel image with each pixel
+#         representing a single colour according to the colour filter array.
+#         """
     
-        y = np.zeros(x.shape[0:2])
-        y[1::2, 1::2] = x[1::2, 1::2, 0]
-        y[0::2, 1::2] = x[0::2, 1::2, 1]
-        y[1::2, 0::2] = x[1::2, 0::2, 1]
-        y[0::2, 0::2] = x[0::2, 0::2, 2]
-        return y
-    
-    
-    def AT(x):
-        """Back project a single channel raw image to an RGB image with zeros
-        at the locations of undefined samples.
-        """
-    
-        y = np.zeros(x.shape + (3,))
-        y[1::2, 1::2, 0] = x[1::2, 1::2]
-        y[0::2, 1::2, 1] = x[0::2, 1::2]
-        y[1::2, 0::2, 1] = x[1::2, 0::2]
-        y[0::2, 0::2, 2] = x[0::2, 0::2]
-        return y
-else:
-    def A(x):
-        """Map an RGB image to a single channel image with each pixel
-        representing a single colour according to the colour filter array.
-        """
-    
-        y = np.zeros(x.shape[0:2])
-        y[2::4, 2::4] = x[2::4, 2::4, 0]
-        y[2::4, 3::4] = x[2::4, 3::4, 0]
-        y[3::4, 2::4] = x[3::4, 2::4, 0]
-        y[3::4, 3::4] = x[3::4, 3::4, 0]
-        y[0::4, 2::4] = x[0::4, 2::4, 1]
-        y[0::4, 3::4] = x[0::4, 3::4, 1]
-        y[1::4, 2::4] = x[1::4, 2::4, 1]
-        y[1::4, 3::4] = x[1::4, 3::4, 1]
-        y[2::4, 0::4] = x[2::4, 0::4, 1]
-        y[2::4, 1::4] = x[2::4, 1::4, 1]
-        y[3::4, 0::4] = x[3::4, 0::4, 1]
-        y[3::4, 1::4] = x[3::4, 1::4, 1]
-        y[0::4, 0::4] = x[0::4, 0::4, 2]
-        y[0::4, 1::4] = x[0::4, 1::4, 2]
-        y[1::4, 0::4] = x[1::4, 0::4, 2]
-        y[1::4, 1::4] = x[1::4, 1::4, 2]
-        return y
+#         y = np.zeros(x.shape[0:2])
+#         y[1::2, 1::2] = x[1::2, 1::2, 0]
+#         y[0::2, 1::2] = x[0::2, 1::2, 1]
+#         y[1::2, 0::2] = x[1::2, 0::2, 1]
+#         y[0::2, 0::2] = x[0::2, 0::2, 2]
+#         return y
     
     
-    def AT(x):
-        """Back project a single channel raw image to an RGB image with zeros
-        at the locations of undefined samples.
-        """
+#     def AT(x):
+#         """Back project a single channel raw image to an RGB image with zeros
+#         at the locations of undefined samples.
+#         """
     
-        y = np.zeros(x.shape + (3,))
-        y[2::4, 2::4, 0] = x[2::4, 2::4]
-        y[2::4, 3::4, 0] = x[2::4, 3::4]
-        y[3::4, 2::4, 0] = x[3::4, 2::4]
-        y[3::4, 3::4, 0] = x[3::4, 3::4]
-        y[0::4, 2::4, 1] = x[0::4, 2::4]
-        y[0::4, 3::4, 1] = x[0::4, 3::4]
-        y[1::4, 2::4, 1] = x[1::4, 2::4]
-        y[1::4, 3::4, 1] = x[1::4, 3::4]
-        y[2::4, 0::4, 1] = x[2::4, 0::4]
-        y[2::4, 1::4, 1] = x[2::4, 1::4]
-        y[3::4, 0::4, 1] = x[3::4, 0::4]
-        y[3::4, 1::4, 1] = x[3::4, 1::4]
-        y[0::4, 0::4, 2] = x[0::4, 0::4]
-        y[0::4, 1::4, 2] = x[0::4, 1::4]
-        y[1::4, 0::4, 2] = x[1::4, 0::4]
-        y[1::4, 1::4, 2] = x[1::4, 1::4]
-        return y
+#         y = np.zeros(x.shape + (3,))
+#         y[1::2, 1::2, 0] = x[1::2, 1::2]
+#         y[0::2, 1::2, 1] = x[0::2, 1::2]
+#         y[1::2, 0::2, 1] = x[1::2, 0::2]
+#         y[0::2, 0::2, 2] = x[0::2, 0::2]
+#         return y
+# else:
+#     def A(x):
+#         """Map an RGB image to a single channel image with each pixel
+#         representing a single colour according to the colour filter array.
+#         """
+    
+#         y = np.zeros(x.shape[0:2])
+#         y[2::4, 2::4] = x[2::4, 2::4, 0]
+#         y[2::4, 3::4] = x[2::4, 3::4, 0]
+#         y[3::4, 2::4] = x[3::4, 2::4, 0]
+#         y[3::4, 3::4] = x[3::4, 3::4, 0]
+#         y[0::4, 2::4] = x[0::4, 2::4, 1]
+#         y[0::4, 3::4] = x[0::4, 3::4, 1]
+#         y[1::4, 2::4] = x[1::4, 2::4, 1]
+#         y[1::4, 3::4] = x[1::4, 3::4, 1]
+#         y[2::4, 0::4] = x[2::4, 0::4, 1]
+#         y[2::4, 1::4] = x[2::4, 1::4, 1]
+#         y[3::4, 0::4] = x[3::4, 0::4, 1]
+#         y[3::4, 1::4] = x[3::4, 1::4, 1]
+#         y[0::4, 0::4] = x[0::4, 0::4, 2]
+#         y[0::4, 1::4] = x[0::4, 1::4, 2]
+#         y[1::4, 0::4] = x[1::4, 0::4, 2]
+#         y[1::4, 1::4] = x[1::4, 1::4, 2]
+#         return y
+    
+    
+#     def AT(x):
+#         """Back project a single channel raw image to an RGB image with zeros
+#         at the locations of undefined samples.
+#         """
+    
+#         y = np.zeros(x.shape + (3,))
+#         y[2::4, 2::4, 0] = x[2::4, 2::4]
+#         y[2::4, 3::4, 0] = x[2::4, 3::4]
+#         y[3::4, 2::4, 0] = x[3::4, 2::4]
+#         y[3::4, 3::4, 0] = x[3::4, 3::4]
+#         y[0::4, 2::4, 1] = x[0::4, 2::4]
+#         y[0::4, 3::4, 1] = x[0::4, 3::4]
+#         y[1::4, 2::4, 1] = x[1::4, 2::4]
+#         y[1::4, 3::4, 1] = x[1::4, 3::4]
+#         y[2::4, 0::4, 1] = x[2::4, 0::4]
+#         y[2::4, 1::4, 1] = x[2::4, 1::4]
+#         y[3::4, 0::4, 1] = x[3::4, 0::4]
+#         y[3::4, 1::4, 1] = x[3::4, 1::4]
+#         y[0::4, 0::4, 2] = x[0::4, 0::4]
+#         y[0::4, 1::4, 2] = x[0::4, 1::4]
+#         y[1::4, 0::4, 2] = x[1::4, 0::4]
+#         y[1::4, 1::4, 2] = x[1::4, 1::4]
+#         return y
+    
 
 def fspecial_gauss(size, sigma):
 
@@ -143,6 +144,17 @@ def blur_f(x):
     return 0.5 * np.linalg.norm((blur_x - sn).ravel())**2
 # Define proximal operator of data fidelity term for PPP problem.
 
+bb= True
+if bb:
+    A = blur
+    AT = blur
+    
+def A(x):
+        return x[::2,::2,:]
+    
+def AT(x):
+    return x.repeat(2,axis=0).repeat(2,axis=1)
+        
 def proxf(x, rho, tol=1e-3, maxit=100):
     ATA = lambda z: AT(A(z))
     ATAI = lambda z: ATA(z.reshape(rgbshp)).ravel() + rho * z.ravel()
@@ -164,22 +176,26 @@ def gaussian_filter(x, rho=1):
     out[:,:,2] = cv2.GaussianBlur(src=x[:,:,2],ksize=(5,5),sigmaX=rho,sigmaY=rho,borderType=cv2.BORDER_REPLICATE)
     return out
 
+def gaussian_filter_bw(x, rho=1):
+    return cv2.GaussianBlur(src=x,ksize=(5,5),sigmaX=rho,sigmaY=rho,borderType=cv2.BORDER_REPLICATE)
+
 def bilateral_filter(x, rho=0.4):
     return cv2.bilateralFilter(src=np.float32(x), d=10, sigmaColor=10, sigmaSpace=rho)
 
 def proxg(x, rho):
     #return bilateral_filter(x, bsigma)
-    return bilateral_filter(x, 3)
-    #return gaussian_filter(x, 1)
-    #return np.float32(denoise_dncnn(np.float32(x)))/255.
+    #return bilateral_filter(x, 1.3)
+    #return gaussian_filter_bw(x, 1)
+    return np.float32(denoise_dncnn(np.float32(x)))/255.
     #return bm3d_rgb(x, 0.3)
-    
+ 
+imarr = []
 if __name__ == "__main__" :
     # Load reference image.
     
     psnr = []
 
-    for i in range(1,25):
+    for i in [23, 7, 19]:
         # img = util.ExampleImages().image('kodim23.png', scaled=True,
         #                                  idxexp=np.s_[160:416,60:316])
         img_name = f'dataset/kodim_dataset/kodim{i:02}.png'
@@ -201,18 +217,18 @@ if __name__ == "__main__" :
     
         np.random.seed(12345)
         s = forward(img)
-        rgbshp = s.shape + (3,)  # Shape of reconstructed RGB image
-        rgbsz = s.size * 3       # Size of reconstructed RGB image
+        rgbshp = (s.shape[0]*2, s.shape[1]*2, s.shape[2]) # Shape of reconstructed RGB image
+        rgbsz = s.size*4        # Size of reconstructed RGB image
         nsigma = 0            # Noise standard deviation
         sn = s + nsigma * np.random.randn(*s.shape)
         
        
         #imgb = demosaic(sn)
-        imgb = myprof(img, rho=0)
+        imgb = AT(sn)
         # Set algorithm options for PPP solver, including use of bilinear demosaiced solution as an initial solution.
         
         opt = PPP.Options({'Verbose': True, 'RelStopTol': 1e-3,
-                           'MaxMainIter': 50, 'rho': 1, 'Y0': imgb})
+                           'MaxMainIter': 50, 'rho': 0.001, 'Y0': imgb})
         #Create solver object and solve, returning the the demosaiced image imgp.
         
         b = PPP(img.shape, myf, myprof, proxg, opt=opt)
@@ -235,9 +251,12 @@ if __name__ == "__main__" :
         #imageio.imwrite(f'img_{time.time()}.png', img)
         #imageio.imwrite(f'sn_{time.time()}.png', sn)
         #imageio.imwrite(f'imgb_{time.time()}.png', imgb)
+        imgp[img>1] = 1
+        img[imgp<0] = 0
         imageio.imwrite(f'imgp_{time.time()}.png', imgp)
         
 
         psnr.append(metric.psnr(img, imgp))
+        imarr.append(imgp)
         
 print(f'Mean_psnr, {np.mean(psnr)}')
